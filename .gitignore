@@ -1,0 +1,392 @@
+# ============================================================
+# Learned N-Body Surrogate
+# Python / ML Research Project
+# ============================================================
+
+
+# ------------------------------------------------------------
+# Python
+# ------------------------------------------------------------
+
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+
+*.egg
+*.egg-info/
+.installed.cfg
+MANIFEST
+
+
+# ------------------------------------------------------------
+# Virtual Environments
+# ------------------------------------------------------------
+
+.venv/
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+
+.python-version
+
+
+# ------------------------------------------------------------
+# Environment / Secrets
+# ------------------------------------------------------------
+
+.env
+.env.*
+!.env.example
+
+*.pem
+*.key
+*.crt
+
+secrets/
+credentials/
+config/secrets.*
+
+
+# ------------------------------------------------------------
+# Testing / Coverage
+# ------------------------------------------------------------
+
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.nox/
+.cache/
+
+coverage.xml
+*.cover
+*.py,cover
+
+
+# ------------------------------------------------------------
+# Type Checking / Linters
+# ------------------------------------------------------------
+
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+.pyre/
+.ruff_cache/
+
+
+# ------------------------------------------------------------
+# Jupyter
+# ------------------------------------------------------------
+
+.ipynb_checkpoints/
+
+# Jupyter temporary files
+*.ipynb_checkpoints
+
+
+# ------------------------------------------------------------
+# Scientific / ML Experiment Outputs
+# ------------------------------------------------------------
+
+# Experiment tracking
+mlruns/
+wandb/
+.wandb/
+neptune/
+tensorboard/
+
+# Logs
+logs/
+*.log
+
+# Generic experiment outputs
+experiments/
+runs/
+outputs/
+results/
+
+# Temporary experiment files
+tmp/
+temp/
+
+
+# ------------------------------------------------------------
+# Machine Learning Models / Checkpoints
+# ------------------------------------------------------------
+
+# PyTorch
+*.pt
+*.pth
+*.ckpt
+
+# TensorFlow / Keras
+*.h5
+*.keras
+
+# Serialized ML objects
+*.pkl
+*.pickle
+*.joblib
+
+# Model export formats
+*.onnx
+*.safetensors
+
+# Checkpoint directories
+checkpoints/
+models/
+saved_models/
+
+
+# ------------------------------------------------------------
+# Generated Scientific Data
+# ------------------------------------------------------------
+
+# Raw downloaded datasets can become very large.
+# Keep the directory structure but don't commit bulk data.
+
+data/raw/*
+!data/raw/.gitkeep
+!data/raw/exoplanet_archive/
+!data/raw/exoplanet_archive/.gitkeep
+!data/raw/horizons/
+!data/raw/horizons/.gitkeep
+
+# Generated simulation datasets
+data/simulated/*
+!data/simulated/.gitkeep
+!data/simulated/training/
+!data/simulated/training/.gitkeep
+!data/simulated/validation/
+!data/simulated/validation/.gitkeep
+!data/simulated/test/
+!data/simulated/test/.gitkeep
+
+# Generated processed datasets
+data/processed/*
+!data/processed/.gitkeep
+
+# Common scientific data formats
+*.npy
+*.npz
+*.h5
+*.hdf5
+*.mat
+*.parquet
+*.feather
+
+# Large CSV/TSV datasets
+# Uncomment these if you decide to keep large datasets locally:
+# *.csv
+# *.tsv
+
+
+# ------------------------------------------------------------
+# Visualization / Generated Media
+# ------------------------------------------------------------
+
+figures/generated/
+plots/
+visualizations/
+
+*.mp4
+*.mov
+*.avi
+*.webm
+
+# Large generated images
+*.gif
+
+
+# ------------------------------------------------------------
+# REBOUND / Simulation Artifacts
+# ------------------------------------------------------------
+
+# Generated simulation outputs
+simulation_outputs/
+simulations/
+
+# Snapshots / serialized simulation states
+*.bin
+*.dat
+*.state
+
+
+# ------------------------------------------------------------
+# macOS
+# ------------------------------------------------------------
+
+.DS_Store
+.AppleDouble
+.LSOverride
+
+Icon
+
+._*
+
+.DocumentRevisions-V100
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+
+
+# ------------------------------------------------------------
+# Windows
+# ------------------------------------------------------------
+
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+
+Desktop.ini
+
+$RECYCLE.BIN/
+
+*.lnk
+
+
+# ------------------------------------------------------------
+# Linux
+# ------------------------------------------------------------
+
+*~
+.directory
+.Trash-*
+
+
+# ------------------------------------------------------------
+# IDE / Editors
+# ------------------------------------------------------------
+
+# VS Code
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+!.vscode/tasks.json
+!.vscode/launch.json
+
+# JetBrains
+.idea/
+*.iml
+*.ipr
+*.iws
+
+# Sublime Text
+*.sublime-workspace
+*.sublime-project
+
+# Vim
+*.swp
+*.swo
+*~
+
+# Emacs
+*~
+\#*\#
+.\#*
+
+
+# ------------------------------------------------------------
+# Documentation Build
+# ------------------------------------------------------------
+
+docs/_build/
+site/
+.public/
+
+
+# ------------------------------------------------------------
+# Docker
+# ------------------------------------------------------------
+
+docker-compose.override.yml
+
+
+# ------------------------------------------------------------
+# OS / Temporary Files
+# ------------------------------------------------------------
+
+*.tmp
+*.temp
+*.bak
+*.backup
+*.orig
+*.rej
+
+
+# ------------------------------------------------------------
+# Profiling
+# ------------------------------------------------------------
+
+*.prof
+*.lprof
+
+
+# ------------------------------------------------------------
+# Security Scanners
+# ------------------------------------------------------------
+
+.bandit/
+.pyup/
+
+
+# ------------------------------------------------------------
+# Local Configuration
+# ------------------------------------------------------------
+
+config/local.yaml
+config/local.yml
+config/*.local.yaml
+config/*.local.yml
+
+
+# ------------------------------------------------------------
+# Generated Reports
+# ------------------------------------------------------------
+
+reports/generated/
+
+
+# ------------------------------------------------------------
+# Project-Specific Local Files
+# ------------------------------------------------------------
+
+# Local dataset manifests generated during development
+data_manifest.json
+dataset_manifest.json
+
+# Local experiment configuration
+experiment.local.yaml
+experiment.local.yml
+
+# Scratch notebooks
+notebooks/scratch/
+notebooks/tmp/
+
+# Personal notes
+personal_notes/
+scratch/

@@ -1,0 +1,787 @@
+# Learned N-Body Surrogate
+
+> A Graph Neural Network surrogate for learning gravitational N-body dynamics, with REBOUND-based numerical ground truth and validation against real astronomical systems.
+
+![Python](https://img.shields.io/badge/Python-3.11%2B-blue)
+![PyTorch](https://img.shields.io/badge/PyTorch-Deep%20Learning-orange)
+![PyG](https://img.shields.io/badge/PyTorch%20Geometric-GNN-purple)
+![REBOUND](https://img.shields.io/badge/REBOUND-N--Body%20Simulation-green)
+![Tests](https://img.shields.io/badge/tests-pytest-red)
+![Status](https://img.shields.io/badge/status-research%20prototype-yellow)
+
+---
+
+## Overview
+
+**Learned N-Body Surrogate** is a scientific machine-learning project that investigates whether a Graph Neural Network (GNN) can learn the dynamics of gravitational N-body systems and act as a computational surrogate for traditional numerical integration.
+
+Instead of explicitly solving the gravitational interaction between every body at every timestep, the model learns the relationship between the current physical state of a system and the accelerations experienced by its bodies.
+
+The learned dynamics are then integrated forward in time to produce predicted trajectories.
+
+The central research question is:
+
+> **Can a graph-based neural network learn general gravitational dynamics that remain physically meaningful when applied to systems and orbital configurations it has not seen during training?**
+
+The project therefore focuses not only on prediction accuracy, but also on **generalization, long-horizon stability, conservation behavior, and physical plausibility**.
+
+---
+
+## Why This Project?
+
+Traditional N-body simulation calculates gravitational interactions numerically at every timestep.
+
+For a system containing `N` interacting bodies, the number of pairwise interactions grows approximately as:
+
+```text
+O(N²)
+```
+
+This becomes increasingly expensive as the number of bodies and simulation duration increase.
+
+A learned surrogate attempts to approximate the underlying dynamics with a neural network.
+
+The idea is not to replace numerical physics blindly, but to investigate whether a machine-learning model can learn a useful approximation of the dynamics while preserving important physical behavior.
+
+---
+
+## Project Goal
+
+The goal is to build a **Graph Neural Network-based surrogate model** capable of:
+
+1. Learning gravitational acceleration from simulated N-body states.
+2. Predicting the next physical state of a system.
+3. Rolling predictions forward over many timesteps.
+4. Generalizing to unseen orbital configurations.
+5. Generalizing across different mass ratios and system sizes.
+6. Maintaining stable trajectories over long rollouts.
+7. Being evaluated against high-quality numerical simulations.
+8. Being tested using parameters derived from real astronomical systems.
+
+---
+
+## Core Idea
+
+The project treats an N-body system as a graph.
+
+Each physical body becomes a **node**, while gravitational interactions are represented through **edges** between bodies.
+
+A simplified graph can be represented as:
+
+```text
+                  Body 2
+                    ●
+                   / \
+                  /   \
+                 /     \
+                /       \
+         ●─────●────────●
+      Body 3  Body 1   Body 4
+```
+
+Every body interacts gravitationally with the other bodies.
+
+The GNN receives the current physical state of the system and learns to estimate the accelerations produced by these interactions.
+
+---
+
+## Graph Representation
+
+Each node represents one astronomical body.
+
+A typical node state is:
+
+```text
+[mass, x, y, z, vx, vy, vz]
+```
+
+where:
+
+- `mass` = body mass
+- `x, y, z` = position
+- `vx, vy, vz` = velocity
+
+Edges represent pairwise gravitational relationships.
+
+Edge information can include quantities such as:
+
+```text
+dx, dy, dz, distance
+```
+
+or normalized relative-position features.
+
+The exact representation may evolve during experimentation.
+
+---
+
+## Model Concept
+
+The initial model is designed around **acceleration prediction** rather than directly predicting absolute positions.
+
+Conceptually:
+
+```text
+Current State
+     │
+     ▼
+Graph Construction
+     │
+     ▼
+Graph Neural Network
+     │
+     ▼
+Predicted Accelerations
+     │
+     ▼
+Numerical Integration
+     │
+     ▼
+Next State
+     │
+     ▼
+Repeat for Rollout
+```
+
+This approach allows the model to learn the local dynamics while a numerical integrator handles the conversion of acceleration into updated velocity and position.
+
+---
+
+## Teacher and Student
+
+The project separates numerical physics from learned physics.
+
+### Teacher / Ground Truth
+
+**REBOUND** is used to generate high-quality numerical N-body trajectories.
+
+REBOUND provides the reference dynamics against which the neural surrogate is evaluated.
+
+### Student / Surrogate
+
+The **Graph Neural Network** learns from the simulated states generated by the numerical system.
+
+The model attempts to approximate the underlying dynamics rather than memorize individual trajectories.
+
+---
+
+## Data Sources
+
+### NASA Exoplanet Archive
+
+The NASA Exoplanet Archive provides real astronomical system parameters that can be used to identify realistic planetary systems and orbital configurations.
+
+Relevant information may include:
+
+- Planet mass
+- Planet radius
+- Orbital period
+- Semi-major axis
+- Eccentricity
+- Inclination
+- Host-star properties
+- Number of planets
+- Orbital uncertainties
+
+The archive is used primarily to provide **realistic system parameters and validation targets**.
+
+---
+
+### JPL Horizons
+
+JPL Horizons provides high-precision ephemerides for Solar System objects.
+
+For this project, the most relevant Horizons output is:
+
+```text
+EPHEM_TYPE = VECTORS
+```
+
+which provides Cartesian state information such as position and velocity.
+
+Horizons is used as an **independent Solar System reference/validation source**.
+
+### Important Scientific Note
+
+JPL Horizons should **not** be treated as a general database of arbitrary exoplanet trajectories.
+
+Horizons primarily provides ephemerides for Solar System objects.
+
+Therefore, the project uses:
+
+```text
+NASA Exoplanet Archive
+        ↓
+Real exoplanet system parameters
+
+REBOUND
+        ↓
+Numerical N-body trajectories
+
+JPL Horizons
+        ↓
+Independent Solar System ephemeris/reference data
+```
+
+These sources serve different purposes and should not be conflated.
+
+---
+
+## Simulation Strategy
+
+The project begins with controlled synthetic systems before moving toward more complex configurations.
+
+Example progression:
+
+```text
+1 star + 1 planet
+        ↓
+1 star + 2 planets
+        ↓
+1 star + 3 planets
+        ↓
+multi-planet systems
+        ↓
+varied mass ratios
+        ↓
+varied orbital configurations
+        ↓
+real-system parameterization
+```
+
+This progression makes it possible to verify that each component works before increasing the difficulty.
+
+---
+
+## Generalization Challenge
+
+A major goal of this project is avoiding trajectory memorization.
+
+A model that has only learned:
+
+```text
+"This exact system follows this exact trajectory"
+```
+
+is not a useful physical surrogate.
+
+Instead, the model should learn something closer to:
+
+```text
+"Given these masses, positions and velocities,
+these gravitational interactions produce these accelerations."
+```
+
+Testing therefore includes configurations that were not present in the training set.
+
+Examples include:
+
+- Unseen mass ratios
+- Unseen orbital periods
+- Different eccentricities
+- Different semi-major axes
+- Different numbers of bodies
+- Different initial conditions
+- Different system scales
+
+---
+
+## Evaluation
+
+The model will be evaluated at multiple levels.
+
+### 1. One-Step Prediction
+
+Compare predicted acceleration/state against the numerical ground truth for a single timestep.
+
+Possible metrics include:
+
+- Mean Absolute Error (MAE)
+- Mean Squared Error (MSE)
+- Root Mean Squared Error (RMSE)
+- Relative error
+
+---
+
+### 2. Short-Horizon Rollout
+
+The model is repeatedly applied for several timesteps.
+
+```text
+State₀
+  ↓
+GNN
+  ↓
+State₁
+  ↓
+GNN
+  ↓
+State₂
+  ↓
+GNN
+  ↓
+...
+```
+
+The predicted trajectory is compared against REBOUND.
+
+---
+
+### 3. Long-Horizon Rollout
+
+Long simulations are particularly important because small prediction errors can accumulate.
+
+The project therefore evaluates:
+
+- Position error
+- Velocity error
+- Energy behavior
+- Orbital stability
+- Trajectory divergence
+- Error growth over time
+
+---
+
+### 4. Generalization Tests
+
+The model is evaluated on systems that differ from the training distribution.
+
+Examples:
+
+```text
+Training:
+1 star + 2 planets
+
+Testing:
+1 star + 3 planets
+```
+
+or:
+
+```text
+Training:
+low eccentricity systems
+
+Testing:
+higher eccentricity systems
+```
+
+The objective is to determine whether the model learned transferable dynamics.
+
+---
+
+## Stability
+
+A dedicated stability component is included to investigate whether predicted systems remain physically reasonable during long rollouts.
+
+Potential stability indicators include:
+
+- Orbital radius behavior
+- Energy drift
+- Collision events
+- Escape events
+- Divergence from numerical reference
+- Unbounded numerical behavior
+
+The stability module is intended to complement standard prediction-error metrics.
+
+---
+
+## Visualization
+
+The project includes visualization tools for inspecting learned dynamics.
+
+Planned visualizations include:
+
+- 2D orbital trajectories
+- 3D orbital trajectories
+- Planetary positions
+- Numerical vs GNN trajectories
+- Position error
+- Velocity error
+- Energy drift
+- Long-horizon divergence
+
+The visualization layer may use:
+
+- Plotly
+- Three.js
+- Matplotlib
+
+The goal is to make the physical behavior of the surrogate model easy to inspect.
+
+---
+
+## Project Architecture
+
+```text
+nbody-surrogate/
+│
+├── README.md
+├── pyproject.toml
+├── .gitignore
+│
+├── config/
+│   └── default.yaml
+│
+├── data/
+│   ├── raw/
+│   │   ├── exoplanet_archive/
+│   │   └── horizons/
+│   │
+│   └── simulated/
+│       ├── training/
+│       ├── validation/
+│       └── test/
+│
+├── src/
+│   └── nbody_surrogate/
+│       ├── __init__.py
+│       ├── sim.py
+│       ├── dataset.py
+│       ├── model.py
+│       ├── train.py
+│       ├── rollout.py
+│       ├── stability.py
+│       └── viz.py
+│
+├── notebooks/
+│   └── 01_explore_ephemeris.ipynb
+│
+├── tests/
+│   ├── test_sim.py
+│   └── test_model.py
+│
+└── scripts/
+    ├── generate_dataset.sh
+    └── train.sh
+```
+
+---
+
+## Module Responsibilities
+
+### `sim.py`
+
+Handles numerical N-body simulation using REBOUND.
+
+Responsibilities include:
+
+- Creating simulations
+- Adding bodies
+- Setting initial conditions
+- Running integrations
+- Recording states
+- Producing numerical ground truth
+
+---
+
+### `dataset.py`
+
+Converts numerical simulation states into machine-learning-ready graph representations.
+
+Responsibilities include:
+
+- Loading simulation data
+- Normalization
+- Graph construction
+- Node features
+- Edge features
+- Training/validation/test splitting
+
+---
+
+### `model.py`
+
+Contains the Graph Neural Network architecture.
+
+Responsibilities include:
+
+- Message passing
+- Node embeddings
+- Interaction modelling
+- Acceleration prediction
+
+---
+
+### `train.py`
+
+Handles model training.
+
+Responsibilities include:
+
+- Loading datasets
+- Model initialization
+- Loss calculation
+- Optimization
+- Validation
+- Checkpointing
+- Experiment logging
+
+---
+
+### `rollout.py`
+
+Handles autoregressive simulation using the trained surrogate.
+
+Responsibilities include:
+
+- Loading trained models
+- Predicting accelerations
+- Numerical integration
+- Multi-step rollout
+- Error accumulation analysis
+
+---
+
+### `stability.py`
+
+Analyzes physical and numerical stability during rollouts.
+
+---
+
+### `viz.py`
+
+Provides visualization utilities for trajectories, errors and system behavior.
+
+---
+
+## Reproducibility
+
+Scientific reproducibility is a core requirement of the project.
+
+Experiments should record:
+
+- Random seeds
+- Model configuration
+- Dataset configuration
+- Simulation parameters
+- Timestep
+- Number of bodies
+- Training configuration
+- Validation configuration
+- Model checkpoints
+
+Configuration files should be preferred over hard-coded experimental parameters.
+
+---
+
+## Installation
+
+Clone the repository:
+
+```bash
+git clone https://github.com/YOUR_USERNAME/nbody-surrogate.git
+cd nbody-surrogate
+```
+
+Create a virtual environment:
+
+```bash
+python -m venv .venv
+```
+
+Activate it on macOS/Linux:
+
+```bash
+source .venv/bin/activate
+```
+
+Activate it on Windows PowerShell:
+
+```powershell
+.venv\Scripts\Activate.ps1
+```
+
+Install the project:
+
+```bash
+pip install -e .
+```
+
+Install development dependencies if provided:
+
+```bash
+pip install -e ".[dev]"
+```
+
+---
+
+## Basic Workflow
+
+The intended workflow is:
+
+### Step 1 — Generate numerical data
+
+```bash
+bash scripts/generate_dataset.sh
+```
+
+### Step 2 — Train the model
+
+```bash
+bash scripts/train.sh
+```
+
+### Step 3 — Evaluate the model
+
+Run the appropriate evaluation or rollout workflow.
+
+### Step 4 — Inspect trajectories
+
+Use the visualization utilities or notebook.
+
+---
+
+## Testing
+
+Run the test suite with:
+
+```bash
+pytest
+```
+
+The tests are intended to verify both numerical simulation behavior and machine-learning components.
+
+Examples include:
+
+- Simulation initialization
+- Body creation
+- State dimensions
+- Graph construction
+- Model forward pass
+- Output dimensions
+- Numerical sanity checks
+
+---
+
+## Research Questions
+
+The project is primarily concerned with the following questions:
+
+1. Can a GNN accurately approximate gravitational acceleration in N-body systems?
+
+2. How does prediction error accumulate during autoregressive rollouts?
+
+3. How well does the model generalize to unseen mass ratios?
+
+4. How well does it generalize to unseen orbital configurations?
+
+5. Can the same architecture handle different numbers of interacting bodies?
+
+6. How does learned dynamics compare with direct numerical integration over long horizons?
+
+7. What physical quantities remain stable during learned rollouts?
+
+---
+
+## Limitations
+
+This project does not assume that a neural network automatically replaces a numerical N-body integrator.
+
+Potential limitations include:
+
+- Error accumulation during long rollouts
+- Distribution shift
+- Poor extrapolation outside the training distribution
+- Numerical instability
+- Sensitivity to timestep selection
+- Difficulty learning rare dynamical events
+- Conservation-law violations
+- Computational overhead during training
+
+These limitations are part of the research problem rather than being hidden.
+
+---
+
+## Development Philosophy
+
+The project follows a physics-first machine-learning workflow:
+
+```text
+Scientific definition
+        ↓
+Numerical simulation
+        ↓
+Data validation
+        ↓
+Graph representation
+        ↓
+Baseline
+        ↓
+GNN
+        ↓
+One-step evaluation
+        ↓
+Short rollout
+        ↓
+Long rollout
+        ↓
+Generalization testing
+        ↓
+Stability analysis
+        ↓
+Real-system validation
+```
+
+The GNN should only be considered meaningful after the underlying numerical simulation and data pipeline have been independently verified.
+
+---
+
+## Current Status
+
+**Research prototype — active development**
+
+Current development priorities:
+
+- [ ] Build and validate the REBOUND simulator
+- [ ] Generate controlled N-body datasets
+- [ ] Implement graph conversion
+- [ ] Establish a non-GNN baseline
+- [ ] Implement the first GNN
+- [ ] Validate one-step predictions
+- [ ] Implement autoregressive rollouts
+- [ ] Evaluate long-horizon stability
+- [ ] Test generalization across system configurations
+- [ ] Integrate NASA Exoplanet Archive parameters
+- [ ] Integrate JPL Horizons reference data
+- [ ] Build interactive visualizations
+- [ ] Document experimental results
+
+---
+
+## Scientific References
+
+### NASA Exoplanet Archive
+
+NASA Exoplanet Archive provides public access to exoplanet and planetary-system data.
+
+https://exoplanetarchive.ipac.caltech.edu/
+
+### JPL Horizons
+
+JPL Horizons provides ephemerides and related information for Solar System objects.
+
+https://ssd.jpl.nasa.gov/horizons/
+
+### Horizons API
+
+https://ssd-api.jpl.nasa.gov/doc/horizons.html
+
+### REBOUND
+
+REBOUND is an open-source N-body simulation package.
+
+https://rebound.readthedocs.io/
+
+### PyTorch Geometric
+
+https://pytorch-geometric.readthedocs.io/
+
+---
+
+## License
+
+This project is intended for research and educational purposes.
+
+A project license will be added as the repository matures.
