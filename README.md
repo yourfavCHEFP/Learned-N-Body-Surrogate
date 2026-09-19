@@ -571,7 +571,7 @@ Configuration files should be preferred over hard-coded experimental parameters.
 Clone the repository:
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/nbody-surrogate.git
+git clone https://github.com/yourfavCHEFP/Learned-N-Body-Surrogate.git
 cd nbody-surrogate
 ```
 
