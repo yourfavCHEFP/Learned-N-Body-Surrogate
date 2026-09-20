@@ -238,6 +238,16 @@ simulations/
 
 .DS_Store
 .AppleDouble
+
+
+# ------------------------------------------------------------
+# Local development installers
+# ------------------------------------------------------------
+
+Miniforge3-*.sh
+
+# Local scaffold created as a separate repository
+project-name/
 .LSOverride
 
 Icon
