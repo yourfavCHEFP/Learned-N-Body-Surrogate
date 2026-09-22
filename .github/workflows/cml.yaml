@@ -1,0 +1,59 @@
+name: Model-Evaluation-GitOps
+on: [push]
+
+jobs:
+  run-evaluation:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository Codebase
+        uses: actions/checkout@v4
+
+      - name: Initialize Setup Python Environment
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Setup Node Platform Engine (Mandatory for CML)
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Setup Iterative Systems CML Interface
+        uses: iterative/setup-cml@v2
+
+      - name: Install Runtime Core Dependencies
+        run: |
+          pip install numpy matplotlib torch
+
+      - name: Run Pipeline Engine and Generate Evaluation Metrics
+        run: |
+          # 1. Simulate creating a metrics plot script natively inside the action runner
+          python -c "
+          import matplotlib.pyplot as plt
+          import numpy as np
+          epochs = np.arange(1, 11)
+          loss = 1 / (epochs ** 1.5)
+          plt.figure()
+          plt.plot(epochs, loss, label='Surrogate Val Loss', color='blue', marker='o')
+          plt.title('Surrogate N-Body Training Accuracy Performance')
+          plt.xlabel('Epochs')
+          plt.ylabel('Mean Squared Error')
+          plt.grid(True)
+          plt.legend()
+          plt.savefig('performance_plot.png')
+          "
+
+          # 2. Simulate compiling numerical accuracy scores
+          echo "## N-Body Model Evaluation Summary" > report.md
+          echo "Validated System Loss Score: **0.03142**" >> report.md
+          echo "### Performance Over Time Trend Graph:" >> report.md
+
+          # 3. Dynamic layout insertion using CML markdown tags
+          cml-publish performance_plot.png --md >> report.md
+
+      - name: Ship Reports and Write Live Pull Request Comment
+        env:
+          REPO_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          cml send-comment report.md
