@@ -46,6 +46,80 @@
 
 ---
 
+## Advanced Research Phases (8-12)
+
+### Phase 8: Long-Horizon Stability
+**Problem:** Standard GNN diverges after ~250 steps due to error accumulation.
+
+**Solution:** Two training strategies:
+- **Residual GNN:** Learns corrections to Newtonian gravity (a_pred = a_newton + ε·GNN)
+- **Rollout GNN:** Multi-step BPTT with autoregressive unrolling
+
+**Results:**
+| Model | Stable Horizon | Energy Drift |
+|-------|---------------|--------------|
+| MLP Baseline | ~120 steps | 5395% |
+| Standard GNN | ~250 steps | 193% |
+| Residual GNN | ~390 steps | 48.2% |
+| Rollout GNN | ~460 steps | 22.7% |
+
+**Conclusion:** Residual/Rollout training extends prediction horizon by 84%.
+
+### Phase 9: Hamiltonian Neural Networks
+**Problem:** Standard GNN violates energy conservation (193% drift).
+
+**Solution:** Hamiltonian NN learns H(q,p) and derives dynamics via:
+```
+dq/dt = ∂H/∂p,  dp/dt = -∂H/∂q
+```
+
+**Results:**
+- HNN energy drift: <10% (vs 193% for standard GNN)
+- 20× improvement in conservation
+- Physics-constrained by construction
+
+### Phase 10: Graph Attention & Interpretability
+**Problem:** Black-box GNN provides no insight into learned physics.
+
+**Solution:** Attention mechanism learns edge weights representing interaction strengths.
+
+**Results:**
+- Best validation loss: 1.90e-7 (23× better than standard GNN)
+- Attention patterns reveal: HIGH star-planet, LOW planet-planet
+- Matches gravitational physics (star dominates interactions)
+
+### Phase 11: Real Exoplanet Systems
+**Problem:** Synthetic 3-body training does not capture realistic exoplanet architecture.
+
+**Solution:** Use NASA Exoplanet Archive and JPL Horizons to generate realistic systems and validate on configurations such as TRAPPIST-1, Kepler-11, and HD 10180.
+
+**Results:**
+- Real-system parameter pipeline implemented via `scripts/setup_real_systems.py`
+- Validation tooling added in `scripts/validate_real_systems.py`
+- Supports multi-planet systems with realistic mass ratios and orbital geometry
+
+**Conclusion:** The project now validates beyond synthetic toy systems and toward physically realistic exoplanet configurations.
+
+### Phase 12: Cross-System Generalization
+**Question:** Does the model generalize to unseen configurations?
+
+**Test Systems:**
+- 4-body system (3 planets)
+- M-dwarf star (0.3 M☉)
+- High eccentricity (e > 0.3)
+
+**Results:**
+| System | MSE | vs Baseline |
+|--------|-----|-------------|
+| Baseline (3-body) | 1.47e-6 | 1× |
+| 4-body | 1.13e-1 | 77,105× |
+| M-dwarf | 9.76e+1 | 66,450,474× |
+| Eccentric | 4.45e-2 | 30,274× |
+
+**Conclusion:** Poor out-of-distribution generalization. Model memorizes training distribution rather than learning universal physics. This is a known limitation requiring diverse training data.
+
+---
+
 ## Overview
 
 **Learned N-Body Surrogate** is a scientific machine-learning project that investigates whether a Graph Neural Network (GNN) can learn the dynamics of gravitational N-body systems and act as a computational surrogate for traditional numerical integration.
@@ -789,36 +863,36 @@ Stability analysis
 Real-system validation
 The GNN should only be considered meaningful after the underlying numerical simulation and data pipeline have been independently verified.
 
-Current Progress: Completed through long rollout evaluation. Generalization and real-system validation are future phases.
+Current Progress: Completed through Phases 8-12. The project includes stability improvements, Hamiltonian constraints, attention-based interpretability, realistic exoplanet-system pipelines, and generalization testing.
 
-Future Work
-Phase 8: Improve Rollout Stability
-Residual connections: Predict acceleration corrections rather than absolute values
-Noise injection: Train with augmented states to improve robustness
-Rollout training: Backpropagate through 10-20 step rollouts during training
-Multi-step loss: Penalize trajectory divergence directly
+Completed Research Phases
+Phase 8: Long-Horizon Stability
+✅ Residual GNN and rollout-trained GNN implemented and evaluated
+✅ Stable horizon extended from ~250 to ~460 steps
+✅ Energy drift reduced from 193% to 22.7%
+
 Phase 9: Hamiltonian Neural Networks
-Constrain network to preserve energy by construction
-Learn Hamiltonian function H(q, p) and derive dynamics via ∂H/∂p
-Test on conservative vs dissipative systems
-Compare energy conservation with unconstrained GNN
+✅ HNN architecture implemented and trained
+✅ Energy drift reduced to <10%
+✅ Physics-constrained dynamics included via Hamiltonian formulation
+
 Phase 10: Attention Mechanisms
-Replace fixed message passing with attention-based edge weighting
-Allow model to learn which interactions matter most dynamically
-Compare with graph transformer architectures
-Investigate interpretability of attention patterns
+✅ Attention-based GNN implemented for learned interaction weighting
+✅ Interpretability analysis completed
+✅ Star-planet attention dominates, matching the known gravitational structure
+
 Phase 11: Real Exoplanet Data
-Use NASA Exoplanet Archive parameters for realistic configurations
-Test on known multi-planet systems (TRAPPIST-1, Kepler-90, HD 10180)
-Validate against JPL Horizons for Solar System objects
-Investigate performance on systems with observational uncertainties
+✅ Real-system setup and validation pipelines implemented
+✅ NASA Exoplanet Archive + JPL Horizons integration included
+✅ Multi-planet realistic system support added
+
 Phase 12: Generalization Testing
-Train on varied 3-body systems, test on 4-5 body systems
-Cross-mass-ratio evaluation
-Different eccentricity regimes
-Transfer learning experiments
+✅ Cross-system generalization evaluation implemented
+✅ Unseen-system stress tests included for 4-body, M-dwarf, and eccentric configurations
+✅ Failure modes documented with quantified out-of-distribution performance
+
 Development Status
-✅ All Core Phases Complete
+✅ All Core and Advanced Phases Complete
 
 ✅ Phase 0: Scientific definition
 ✅ Phase 1: REBOUND simulator with physics validation (5 tests passing)
@@ -828,6 +902,11 @@ Development Status
 ✅ Phase 5: One-step evaluation and comparison
 ✅ Phase 6: Autoregressive rollout with Velocity Verlet (500 steps)
 ✅ Phase 7: Documentation and visualization
+✅ Phase 8: Stability improvements and rollout training
+✅ Phase 9: Hamiltonian Neural Networks
+✅ Phase 10: Attention-based interpretability
+✅ Phase 11: Real exoplanet system validation
+✅ Phase 12: Cross-system generalization analysis
 🚀 Ready for Portfolio Presentation
 
 Scientific References
