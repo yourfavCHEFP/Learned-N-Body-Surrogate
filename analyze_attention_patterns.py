@@ -34,11 +34,12 @@ def analyze():
     model.load_state_dict(torch.load(checkpoint, map_location=device))
     model.eval()
 
-    # Load data
+    # Load data -- reuse the EXACT normalizer this checkpoint was trained
+    # with (rather than refitting), so features here have the scale the
+    # model actually learned.
     trajectory = load_trajectory("data/simulated/milestone_trajectory.npz")
-    accelerations = compute_gravitational_accelerations(trajectory["positions"], trajectory["masses"])
-    normalizer = Normalizer.fit(masses=trajectory["masses"], positions=trajectory["positions"], velocities=trajectory["velocities"], accelerations=accelerations)
-    graphs = trajectory_to_graphs(trajectory)
+    normalizer = Normalizer.load(checkpoint.parent / "normalizer.npz")
+    graphs = trajectory_to_graphs(trajectory, normalizer=normalizer)
     
     masses = trajectory["masses"]
     names = ["Star", "Planet1", "Planet2"]  # Default names for 3-body system

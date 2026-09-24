@@ -25,9 +25,9 @@ def train():
 
     # Load data
     trajectory = load_trajectory("data/simulated/milestone_trajectory.npz")
-    accelerations = compute_gravitational_accelerations(trajectory["positions"], trajectory["masses"])
+    accelerations = compute_gravitational_accelerations(trajectory["positions"], trajectory["masses"], G=trajectory["G"])
     normalizer = Normalizer.fit(masses=trajectory["masses"], positions=trajectory["positions"], velocities=trajectory["velocities"], accelerations=accelerations)
-    graphs = trajectory_to_graphs(trajectory)
+    graphs = trajectory_to_graphs(trajectory, normalizer=normalizer)
 
     n_samples = len(graphs)
     train_idx = int(0.70 * n_samples)
@@ -49,6 +49,7 @@ def train():
 
     checkpoint_dir = Path("checkpoints/attention_gnn")
     checkpoint_dir.mkdir(parents=True, exist_ok=True)
+    normalizer.save(checkpoint_dir / "normalizer.npz")
 
     best_val_loss = float("inf")
     train_losses, val_losses = [], []

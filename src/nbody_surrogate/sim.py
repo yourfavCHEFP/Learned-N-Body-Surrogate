@@ -11,7 +11,10 @@ Units: astronomical units throughout (§2.5 of the project guide).
     - distance : AU
     - mass     : solar masses (M_sun)
     - time     : years
-    - G        : 1.0 (REBOUND's default in these units)
+    - G        : NOT 1.0 in these units -- REBOUND computes G = 4*pi**2 (~39.48)
+                 for ("yr","AU","Msun"). Every SimResult carries its own `G`
+                 (read from `sim.G`); always use that value downstream instead
+                 of assuming a constant.
 
 Nothing in this file touches PyTorch / PyTorch Geometric. That's deliberate —
 Phase 1 is "can we trust the physics," not "can we train a model."
@@ -46,6 +49,10 @@ class SimResult:
     masses: np.ndarray  # shape (N,)
     names: list[str]
     energy: np.ndarray  # shape (T,) total energy at each snapshot
+    G: float = 1.0  # gravitational constant actually used by the simulator,
+    # in whatever unit system this trajectory was generated in. NEVER assume
+    # G=1 downstream -- read it from here. For REBOUND with
+    # sim.units = ("yr", "AU", "Msun"), G is 4*pi**2 (~39.48), NOT 1.
     body_specs: list[BodySpec] = field(default_factory=list)
 
     @property
@@ -66,6 +73,7 @@ class SimResult:
             masses=self.masses,
             names=np.array(self.names),
             energy=self.energy,
+            G=np.array(self.G),
         )
 
 
@@ -121,6 +129,8 @@ def run_simulation(
     sim = build_simulation(bodies, seed=seed)
     names = [b.name for b in bodies]
     n = len(names)
+    G = sim.G  # read the REAL constant REBOUND is using for this unit system --
+    # for ("yr","AU","Msun") this is 4*pi**2 (~39.48), NOT 1. Never hardcode it.
 
     times = np.linspace(0.0, t_max, n_snapshots)
     positions = np.zeros((n_snapshots, n, 3))
@@ -142,6 +152,7 @@ def run_simulation(
         masses=masses,
         names=names,
         energy=energy,
+        G=G,
         body_specs=bodies,
     )
 

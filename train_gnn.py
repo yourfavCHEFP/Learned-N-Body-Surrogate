@@ -93,7 +93,7 @@ def main() -> None:
     # 2. Compute accelerations
     print("Computing gravitational accelerations...")
     accelerations = compute_gravitational_accelerations(
-        trajectory["positions"], trajectory["masses"]
+        trajectory["positions"], trajectory["masses"], G=trajectory["G"]
     )
 
     # 3. Fit normalizer
@@ -104,10 +104,13 @@ def main() -> None:
         velocities=trajectory["velocities"],
         accelerations=accelerations,
     )
+    normalizer.save(CHECKPOINT_DIR / "normalizer.npz")
 
-    # 4. Convert trajectory to graphs
+    # 4. Convert trajectory to graphs (normalized -- this is what actually
+    # makes the normalizer's stats reach the model; it used to be computed
+    # and then silently discarded here).
     print("Converting trajectory to graphs...")
-    graphs = trajectory_to_graphs(trajectory)
+    graphs = trajectory_to_graphs(trajectory, normalizer=normalizer)
     print(f"Created {len(graphs)} graph samples")
 
     # 5. Split dataset

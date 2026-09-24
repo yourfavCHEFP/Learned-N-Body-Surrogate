@@ -29,7 +29,7 @@ def train():
     # Compute accelerations
     print("Computing accelerations...")
     accelerations = compute_gravitational_accelerations(
-        trajectory["positions"], trajectory["masses"]
+        trajectory["positions"], trajectory["masses"], G=trajectory["G"]
     )
     
     # Fit normalizer
@@ -43,7 +43,7 @@ def train():
     
     # Convert to graphs
     print("Converting to graphs...")
-    graphs = trajectory_to_graphs(trajectory)
+    graphs = trajectory_to_graphs(trajectory, normalizer=normalizer)
     print(f"Created {len(graphs)} graph samples")
 
     n_samples = len(graphs)
@@ -59,6 +59,7 @@ def train():
 
     checkpoint_dir = Path("checkpoints/residual_gnn")
     checkpoint_dir.mkdir(parents=True, exist_ok=True)
+    normalizer.save(checkpoint_dir / "normalizer.npz")
 
     best_val_loss = float("inf")
     train_losses, val_losses = [], []
@@ -70,8 +71,8 @@ def train():
             batch = batch.to(device)
             optimizer.zero_grad()
 
-            delta_a = model(batch)
-            loss = criterion(delta_a, batch.y)
+            pred_a = model(batch)  # a_prior + residual_scale * GNN(state)
+            loss = criterion(pred_a, batch.y)
 
             loss.backward()
             optimizer.step()
@@ -85,8 +86,8 @@ def train():
         with torch.no_grad():
             for batch in val_loader:
                 batch = batch.to(device)
-                delta_a = model(batch)
-                val_loss += criterion(delta_a, batch.y).item() * batch.num_graphs
+                pred_a = model(batch)
+                val_loss += criterion(pred_a, batch.y).item() * batch.num_graphs
 
         avg_val = val_loss / (val_idx - train_idx)
         val_losses.append(avg_val)

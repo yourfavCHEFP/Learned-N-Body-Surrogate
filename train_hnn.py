@@ -146,20 +146,25 @@ def train():
         avg_train_loss = total_loss / n_batches
         train_losses.append(avg_train_loss)
 
-        # Validation - compute loss without autograd derivatives
+        # Validation. NOTE: this deliberately does NOT use torch.no_grad().
+        # time_derivative() computes dH/dq, dH/dp via torch.autograd.grad,
+        # which needs gradient tracking enabled for q/p even though we never
+        # call .backward() or optimizer.step() here -- no_grad() previously
+        # made that impossible, which is why this used to be faked as
+        # `avg_train_loss * 1.1`. model.eval() still correctly disables any
+        # dropout/batchnorm-style behavior; it just doesn't disable autograd.
         model.eval()
-        with torch.no_grad():
-            q_val = q_train[train_idx:val_idx].to(device)
-            p_val = p_train[train_idx:val_idx].to(device)
-            m_val = m_train.unsqueeze(0).expand(val_idx - train_idx, -1).to(device)
+        q_val = q_train[train_idx:val_idx].to(device)
+        p_val = p_train[train_idx:val_idx].to(device)
+        m_val = m_train.unsqueeze(0).expand(val_idx - train_idx, -1).to(device)
 
-            dq_val = dq_target[train_idx:val_idx].to(device)
-            dp_val = dp_target[train_idx:val_idx].to(device)
+        dq_val = dq_target[train_idx:val_idx].to(device)
+        dp_val = dp_target[train_idx:val_idx].to(device)
 
-            # For validation, manually compute predictions without time_derivative
-            # (which requires gradients). Use simple forward pass instead.
-            # Since HNN is complex, just use train loss as proxy for val loss
-            val_loss = avg_train_loss * 1.1  # Placeholder
+        dq_pred, dp_pred = model.time_derivative(q_val, p_val, m_val)
+        val_loss_q = torch.mean((dq_pred - dq_val) ** 2)
+        val_loss_p = torch.mean((dp_pred - dp_val) ** 2)
+        val_loss = (val_loss_q + val_loss_p).item()
 
         val_losses.append(val_loss)
 

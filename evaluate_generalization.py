@@ -16,8 +16,16 @@ from nbody_surrogate.dataset import (
 )
 from nbody_surrogate.model import GNNSurrogate
 
-def evaluate_on_system(model, system_name, device):
-    """Evaluate model on one test system."""
+def evaluate_on_system(model, system_name, device, normalizer):
+    """Evaluate model on one test system.
+
+    IMPORTANT: `normalizer` must be the SAME instance fit on the training
+    trajectory (loaded from the checkpoint dir), not refit here. The model
+    only knows the feature scale it was trained on -- normalizing a test
+    system by ITS OWN stats would silently feed the model differently-scaled
+    inputs than it learned from, on top of leaking that test system's own
+    distribution into what's supposed to be an unseen-system evaluation.
+    """
     traj_path = Path(f"data/simulated/{system_name}_trajectory.npz")
 
     if not traj_path.exists():
@@ -25,9 +33,7 @@ def evaluate_on_system(model, system_name, device):
         return None
 
     trajectory = load_trajectory(str(traj_path))
-    accelerations = compute_gravitational_accelerations(trajectory["positions"], trajectory["masses"])
-    normalizer = Normalizer.fit(masses=trajectory["masses"], positions=trajectory["positions"], velocities=trajectory["velocities"], accelerations=accelerations)
-    graphs = trajectory_to_graphs(trajectory)
+    graphs = trajectory_to_graphs(trajectory, normalizer=normalizer)
 
     # Use all data for testing
     model.eval()
@@ -64,9 +70,15 @@ def main():
     ).to(device)
     model.load_state_dict(torch.load(checkpoint, map_location=device))
 
+    normalizer_path = checkpoint.parent / "normalizer.npz"
+    if not normalizer_path.exists():
+        print(f"❌ {normalizer_path} not found. Re-run train_gnn.py (it now saves the normalizer).")
+        return
+    normalizer = Normalizer.load(normalizer_path)
+
     # Baseline performance (original 3-body system)
     print("\nBaseline (3-body milestone system):")
-    baseline_mse = evaluate_on_system(model, "milestone", device)
+    baseline_mse = evaluate_on_system(model, "milestone", device, normalizer)
     if baseline_mse:
         print(f"  MSE: {baseline_mse:.6e}")
 
@@ -82,7 +94,7 @@ def main():
     print("\nGeneralization Tests:")
     for sys_name, description in test_systems.items():
         print(f"\n{description}:")
-        mse = evaluate_on_system(model, sys_name, device)
+        mse = evaluate_on_system(model, sys_name, device, normalizer)
         if mse:
             print(f"  MSE: {mse:.6e}")
             if baseline_mse:

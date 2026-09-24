@@ -10,7 +10,12 @@ import torch
 from torch_geometric.data import Data
 
 from nbody_surrogate.baseline import MLPBaseline
-from nbody_surrogate.dataset import load_trajectory, trajectory_to_graphs
+from nbody_surrogate.dataset import (
+    Normalizer,
+    compute_gravitational_accelerations,
+    load_trajectory,
+    trajectory_to_graphs,
+)
 from nbody_surrogate.model import GNNSurrogate
 
 # Paths
@@ -22,7 +27,86 @@ OUTPUT_DIR = Path("checkpoints")
 # Rollout parameters
 ROLLOUT_STEPS = 500
 DT = 0.01
-G = 1.0
+# NOTE: G is no longer a hardcoded constant here. It used to default to 1.0,
+# but REBOUND (units yr/AU/Msun) actually integrates with G=4*pi**2 (~39.48).
+# Using the wrong G here doesn't just mis-scale energy -- it means energy
+# computed even for the REAL REBOUND trajectory drifts, because
+# (KE - G_wrong * PE_shape) isn't the system's actual conserved quantity.
+# `main()` now reads the real G from the loaded trajectory and passes it
+# through explicitly everywhere energy is computed.
+
+
+def _build_gnn_graph(
+    positions: np.ndarray,
+    velocities: np.ndarray,
+    masses: np.ndarray,
+    normalizer: Normalizer,
+    device: torch.device,
+    G: float,
+) -> Data:
+    """Build one normalized graph for the GNN, matching trajectory_to_graphs'
+    feature construction exactly (raw edge geometry, then normalized).
+
+    Also attaches `a_prior` (the analytical Newtonian acceleration at this
+    state, normalized) so this same builder works for both GNNSurrogate and
+    ResidualGNNSurrogate -- the latter reads data.a_prior internally, the
+    former simply ignores the extra field.
+    """
+    n_bodies = len(masses)
+
+    node_features = np.concatenate(
+        [
+            normalizer.normalize_mass(masses)[:, None],
+            normalizer.normalize_pos(positions),
+            normalizer.normalize_vel(velocities),
+        ],
+        axis=1,
+    )
+
+    edge_index = []
+    edge_attr = []
+    for i in range(n_bodies):
+        for j in range(n_bodies):
+            if i != j:
+                edge_index.append([i, j])
+                rel_pos = positions[j] - positions[i]
+                distance = np.linalg.norm(rel_pos)
+                edge_attr.append(np.concatenate([rel_pos, [distance]]))
+    edge_attr = normalizer.normalize_edge_features(np.array(edge_attr))
+
+    edge_index = torch.tensor(edge_index, dtype=torch.long).t().contiguous()
+    edge_attr = torch.tensor(edge_attr, dtype=torch.float32)
+
+    a_prior = compute_gravitational_accelerations(
+        positions[None, ...], masses, G=G
+    )[0]
+    a_prior = normalizer.normalize_acc(a_prior)
+
+    return Data(
+        x=torch.tensor(node_features, dtype=torch.float32),
+        edge_index=edge_index,
+        edge_attr=edge_attr,
+        a_prior=torch.tensor(a_prior, dtype=torch.float32),
+    ).to(device)
+
+
+def _build_mlp_input(
+    positions: np.ndarray,
+    velocities: np.ndarray,
+    masses: np.ndarray,
+    normalizer: Normalizer,
+    device: torch.device,
+) -> torch.Tensor:
+    """Build one normalized flattened-state input for the MLP baseline."""
+    flat_input = np.concatenate(
+        [
+            normalizer.normalize_mass(masses)[:, None],
+            normalizer.normalize_pos(positions),
+            normalizer.normalize_vel(velocities),
+        ],
+        axis=1,
+    ).flatten()
+    return torch.tensor(flat_input, dtype=torch.float32).unsqueeze(0).to(device)
 
 
 def velocity_verlet_step(
@@ -33,51 +117,33 @@ def velocity_verlet_step(
     model: torch.nn.Module,
     dt: float,
     device: torch.device,
+    normalizer: Normalizer,
+    G: float,
     is_gnn: bool = True,
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
-    """Perform one Velocity Verlet integration step."""
+    """Perform one Velocity Verlet integration step.
+
+    `accelerations` in and out are always in REAL physical units -- the model
+    is only ever asked for a normalized-space prediction internally, which is
+    immediately denormalized via `normalizer.denormalize_acc` before it's
+    used in the physics update below. Never feed a model's raw output
+    directly into position/velocity updates.
+    """
     n_bodies = len(masses)
 
     new_positions = positions + velocities * dt + 0.5 * accelerations * dt**2
 
     if is_gnn:
-        node_features = np.concatenate(
-            [masses[:, None], new_positions, velocities], axis=1
-        )
-
-        edge_index = []
-        edge_attr = []
-        for i in range(n_bodies):
-            for j in range(n_bodies):
-                if i != j:
-                    edge_index.append([i, j])
-                    rel_pos = new_positions[j] - new_positions[i]
-                    distance = np.linalg.norm(rel_pos)
-                    edge_attr.append(np.concatenate([rel_pos, [distance]]))
-
-        edge_index = torch.tensor(edge_index, dtype=torch.long).t().contiguous()
-        edge_attr = torch.tensor(edge_attr, dtype=torch.float32)
-
-        graph = Data(
-            x=torch.tensor(node_features, dtype=torch.float32),
-            edge_index=edge_index,
-            edge_attr=edge_attr,
-        ).to(device)
-
+        graph = _build_gnn_graph(new_positions, velocities, masses, normalizer, device, G)
         with torch.no_grad():
             new_accelerations = model(graph).cpu().numpy()
     else:
-        flat_input = np.concatenate(
-            [masses[:, None], new_positions, velocities], axis=1
-        ).flatten()
-        flat_input = (
-            torch.tensor(flat_input, dtype=torch.float32).unsqueeze(0).to(device)
-        )
-
+        flat_input = _build_mlp_input(new_positions, velocities, masses, normalizer, device)
         with torch.no_grad():
             flat_output = model(flat_input).cpu().numpy()
-
         new_accelerations = flat_output.reshape(n_bodies, 3)
+
+    new_accelerations = normalizer.denormalize_acc(new_accelerations)
 
     new_velocities = velocities + 0.5 * (accelerations + new_accelerations) * dt
 
@@ -92,6 +158,8 @@ def rollout_trajectory(
     num_steps: int,
     dt: float,
     device: torch.device,
+    normalizer: Normalizer,
+    G: float,
     is_gnn: bool = True,
 ) -> tuple[np.ndarray, np.ndarray]:
     """Run autoregressive rollout for num_steps timesteps."""
@@ -104,50 +172,36 @@ def rollout_trajectory(
     velocities_history[0] = initial_velocities
 
     if is_gnn:
-        node_features = np.concatenate(
-            [masses[:, None], initial_positions, initial_velocities], axis=1
+        graph = _build_gnn_graph(
+            initial_positions, initial_velocities, masses, normalizer, device, G
         )
-
-        edge_index = []
-        edge_attr = []
-        for i in range(n_bodies):
-            for j in range(n_bodies):
-                if i != j:
-                    edge_index.append([i, j])
-                    rel_pos = initial_positions[j] - initial_positions[i]
-                    distance = np.linalg.norm(rel_pos)
-                    edge_attr.append(np.concatenate([rel_pos, [distance]]))
-
-        edge_index = torch.tensor(edge_index, dtype=torch.long).t().contiguous()
-        edge_attr = torch.tensor(edge_attr, dtype=torch.float32)
-
-        graph = Data(
-            x=torch.tensor(node_features, dtype=torch.float32),
-            edge_index=edge_index,
-            edge_attr=edge_attr,
-        ).to(device)
-
         with torch.no_grad():
             accelerations = model(graph).cpu().numpy()
     else:
-        flat_input = np.concatenate(
-            [masses[:, None], initial_positions, initial_velocities], axis=1
-        ).flatten()
-        flat_input = (
-            torch.tensor(flat_input, dtype=torch.float32).unsqueeze(0).to(device)
+        flat_input = _build_mlp_input(
+            initial_positions, initial_velocities, masses, normalizer, device
         )
-
         with torch.no_grad():
             flat_output = model(flat_input).cpu().numpy()
-
         accelerations = flat_output.reshape(n_bodies, 3)
+
+    accelerations = normalizer.denormalize_acc(accelerations)
 
     positions = initial_positions.copy()
     velocities = initial_velocities.copy()
 
     for step in range(num_steps):
         positions, velocities, accelerations = velocity_verlet_step(
-            positions, velocities, accelerations, masses, model, dt, device, is_gnn
+            positions,
+            velocities,
+            accelerations,
+            masses,
+            model,
+            dt,
+            device,
+            normalizer,
+            G,
+            is_gnn,
         )
 
         positions_history[step + 1] = positions
@@ -156,10 +210,57 @@ def rollout_trajectory(
     return positions_history, velocities_history
 
 
+def rollout_hnn(
+    initial_positions: np.ndarray,
+    initial_velocities: np.ndarray,
+    masses: np.ndarray,
+    model: torch.nn.Module,
+    num_steps: int,
+    dt: float,
+    device: torch.device,
+) -> tuple[np.ndarray, np.ndarray]:
+    """
+    Autoregressive rollout for HamiltonianNN.
+
+    HNN predicts (dq/dt, dp/dt) = (dH/dp, -dH/dq) directly via autograd, not
+    an acceleration to feed into velocity-Verlet -- so it needs its own
+    integrator, not `rollout_trajectory`/`velocity_verlet_step` above.
+    Uses plain explicit Euler on (q, p), matching the same finite-difference
+    convention `train_hnn.py` used to build its training targets.
+    """
+    n_bodies = len(masses)
+    positions_history = np.zeros((num_steps + 1, n_bodies, 3))
+    velocities_history = np.zeros((num_steps + 1, n_bodies, 3))
+
+    positions_history[0] = initial_positions
+    velocities_history[0] = initial_velocities
+
+    q = torch.tensor(initial_positions, dtype=torch.float32, device=device).unsqueeze(0)
+    p = torch.tensor(
+        initial_velocities * masses[:, None], dtype=torch.float32, device=device
+    ).unsqueeze(0)
+    m = torch.tensor(masses, dtype=torch.float32, device=device).unsqueeze(0)
+
+    model.eval()
+    for step in range(num_steps):
+        # time_derivative needs gradient tracking internally (see train_hnn.py);
+        # we still don't want it to build a graph across steps, so detach
+        # immediately after each step's derivative is computed.
+        dq_dt, dp_dt = model.time_derivative(q, p, m)
+        q = (q + dt * dq_dt).detach()
+        p = (p + dt * dp_dt).detach()
+
+        positions_history[step + 1] = q.squeeze(0).cpu().numpy()
+        velocities_history[step + 1] = (p.squeeze(0).cpu().numpy()) / masses[:, None]
+
+    return positions_history, velocities_history
+
+
 def compute_energy(
-    positions: np.ndarray, velocities: np.ndarray, masses: np.ndarray, G: float = 1.0
+    positions: np.ndarray, velocities: np.ndarray, masses: np.ndarray, G: float
 ) -> float:
-    """Compute total energy (kinetic + potential)."""
+    """Compute total energy (kinetic + potential). G is REQUIRED -- pass the
+    trajectory's own G (see dataset.py); do not assume 1.0."""
     kinetic = 0.5 * np.sum(masses * np.sum(velocities**2, axis=1))
 
     potential = 0.0
@@ -373,6 +474,7 @@ def main() -> None:
     initial_positions = trajectory["positions"][0]
     initial_velocities = trajectory["velocities"][0]
     masses = trajectory["masses"]
+    G = trajectory["G"]  # the REAL constant this trajectory was generated with
 
     print("Initial conditions:")
     print(f"  Masses: {masses}")
@@ -380,7 +482,8 @@ def main() -> None:
     print(f"  Initial velocities shape: {initial_velocities.shape}")
 
     print("\nLoading trained models...")
-    sample_graph = trajectory_to_graphs(trajectory)[0]
+    normalizer = Normalizer.load(GNN_CHECKPOINT.parent / "normalizer.npz")
+    sample_graph = trajectory_to_graphs(trajectory, normalizer=normalizer)[0]
     n_bodies = len(masses)
 
     mlp_model = MLPBaseline(
@@ -421,6 +524,8 @@ def main() -> None:
         ROLLOUT_STEPS,
         DT,
         device,
+        normalizer,
+        G,
         is_gnn=True,
     )
 
@@ -433,6 +538,8 @@ def main() -> None:
         ROLLOUT_STEPS,
         DT,
         device,
+        normalizer,
+        G,
         is_gnn=False,
     )
 

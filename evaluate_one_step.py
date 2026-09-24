@@ -12,6 +12,7 @@ from torch_geometric.loader import DataLoader
 
 from nbody_surrogate.baseline import MLPBaseline
 from nbody_surrogate.dataset import (
+    Normalizer,
     load_trajectory,
     trajectory_to_graphs,
 )
@@ -178,7 +179,8 @@ def main() -> None:
 
     # 1. Load dataset with exact same split seed
     trajectory = load_trajectory(DATA_PATH)
-    graphs = trajectory_to_graphs(trajectory)
+    normalizer = Normalizer.load(GNN_CHECKPOINT.parent / "normalizer.npz")
+    graphs = trajectory_to_graphs(trajectory, normalizer=normalizer)
 
     n_samples = len(graphs)
     n_train = int(n_samples * 0.7)
