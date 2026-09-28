@@ -1,5 +1,11 @@
 name: Model-Evaluation-GitOps
-on: [push]
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+  pull-requests: write
 
 jobs:
   run-evaluation:
@@ -53,6 +59,7 @@ jobs:
           cml-publish performance_plot.png --md >> report.md
 
       - name: Ship Reports and Write Live Pull Request Comment
+        if: github.event_name == 'pull_request'
         env:
           REPO_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
