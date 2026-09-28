@@ -63,6 +63,7 @@ dependencies = [
     # Visualization
     "matplotlib>=3.9,<4.0",
     "plotly>=5.24,<7.0",
+    "streamlit>=1.40,<2.0",
 
     # Astronomy / scientific utilities
     "astropy>=6.1,<8.0",

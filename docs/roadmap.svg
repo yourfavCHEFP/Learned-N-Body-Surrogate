@@ -1,0 +1,196 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="2400" height="1660" viewBox="0 0 2400 1660" role="img" aria-labelledby="title desc">
+  <title id="title">Learned N-Body Surrogate research roadmap</title>
+  <desc id="desc">A five-lane roadmap from REBOUND simulation and graph construction through stability, Hamiltonian constraints, attention, real-system testing, and future diverse training data.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#07111f"/>
+      <stop offset="1" stop-color="#101b2d"/>
+    </linearGradient>
+    <linearGradient id="header" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#173a63"/>
+      <stop offset="1" stop-color="#14283e"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="8" stdDeviation="8" flood-color="#000" flood-opacity=".28"/>
+    </filter>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#a9c4db"/>
+    </marker>
+    <marker id="redArrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#ff7f82"/>
+    </marker>
+    <style>
+      .sans { font-family: 'Avenir Next', 'Helvetica Neue', Arial, sans-serif; }
+      .title { fill: #f5f8fb; font-size: 42px; font-weight: 800; letter-spacing: .2px; }
+      .subtitle { fill: #a8c4d9; font-size: 20px; font-weight: 500; }
+      .lane-label { fill: #dcebf4; font-size: 17px; font-weight: 800; letter-spacing: 2px; }
+      .card-title { fill: #f8fbfd; font-size: 23px; font-weight: 800; }
+      .body { fill: #c8d7e2; font-size: 16px; font-weight: 500; }
+      .metric { fill: #ffffff; font-size: 17px; font-weight: 800; }
+      .tiny { fill: #9bb4c7; font-size: 13px; font-weight: 600; }
+      .math { fill: #f6c86e; font-size: 18px; font-weight: 700; }
+    </style>
+  </defs>
+
+  <rect width="2400" height="1660" fill="url(#bg)"/>
+  <g opacity=".28" fill="#b9e1ff">
+    <circle cx="70" cy="90" r="2"/><circle cx="330" cy="150" r="2"/><circle cx="620" cy="58" r="1.5"/><circle cx="1060" cy="132" r="2"/><circle cx="1490" cy="52" r="1.5"/><circle cx="1830" cy="125" r="2"/><circle cx="2290" cy="70" r="1.5"/>
+    <circle cx="2260" cy="430" r="2"/><circle cx="80" cy="780" r="1.5"/><circle cx="2380" cy="1150" r="2"/><circle cx="90" cy="1510" r="2"/>
+  </g>
+
+  <rect x="40" y="34" width="2320" height="166" rx="22" fill="url(#header)" stroke="#2d5677" stroke-width="2"/>
+  <g transform="translate(83 78)">
+    <circle cx="48" cy="48" r="23" fill="#f6bd4c"/>
+    <circle cx="48" cy="48" r="39" fill="none" stroke="#7fb5d1" stroke-width="2" opacity=".75"/>
+    <ellipse cx="48" cy="48" rx="75" ry="25" fill="none" stroke="#7fb5d1" stroke-width="2" opacity=".8" transform="rotate(-18 48 48)"/>
+    <circle cx="115" cy="27" r="8" fill="#c2e1ee"/>
+    <circle cx="-15" cy="74" r="6" fill="#e4a45c"/>
+  </g>
+  <text x="205" y="91" class="sans title">Learned N-Body Surrogate</text>
+  <text x="205" y="126" class="sans subtitle">GNNs for gravitational N-body dynamics | Full research pipeline</text>
+  <text x="205" y="163" class="sans tiny">Can a graph-based surrogate learn dynamics that remain accurate, stable, energy-aware, and transferable?</text>
+  <g transform="translate(1830 55)">
+    <rect width="475" height="123" rx="15" fill="#0b1727" stroke="#3e6b88"/>
+    <text x="22" y="29" class="sans tiny" fill="#b4d6e9">PROJECT THESIS</text>
+    <text x="22" y="61" class="sans metric">Relational structure helps.</text>
+    <text x="22" y="87" class="sans metric">Physics constraints help more.</text>
+    <text x="22" y="108" class="sans tiny">Generalization remains the open problem.</text>
+  </g>
+
+  <!-- Lane 1 -->
+  <rect x="40" y="226" width="2320" height="234" rx="18" fill="#0c2034" stroke="#2b6b99" stroke-width="2"/>
+  <rect x="40" y="226" width="2320" height="42" rx="18" fill="#164b76"/>
+  <text x="66" y="254" class="sans lane-label">FOUNDATION | PHASES 0-7</text>
+  <g filter="url(#shadow)">
+    <rect x="66" y="292" width="520" height="170" rx="14" fill="#123451" stroke="#4b9ddd" stroke-width="2"/>
+    <rect x="606" y="292" width="520" height="170" rx="14" fill="#123451" stroke="#4b9ddd" stroke-width="2"/>
+    <rect x="1146" y="292" width="520" height="170" rx="14" fill="#123451" stroke="#4b9ddd" stroke-width="2"/>
+    <rect x="1686" y="292" width="648" height="170" rx="14" fill="#123451" stroke="#4b9ddd" stroke-width="2"/>
+  </g>
+  <g class="sans">
+    <text x="91" y="327" class="card-title">01  Simulation</text>
+    <text x="91" y="357" class="body"><tspan x="91" dy="0">REBOUND + WHFast symplectic integration</tspan><tspan x="91" dy="24">AU, Msun, yr units | star + two planets</tspan></text>
+    <text x="91" y="429" class="metric">2,000 timesteps | dt = 0.01 yr</text>
+    <text x="631" y="327" class="card-title">02  Graph Construction</text>
+    <text x="631" y="357" class="body"><tspan x="631" dy="0">Nodes: mass, position, velocity</tspan><tspan x="631" dy="24">Edges: relative displacement + distance</tspan></text>
+    <text x="631" y="429" class="metric">7D nodes | 4D edges | complete graph</text>
+    <text x="1171" y="327" class="card-title">03  GNN Architecture</text>
+    <text x="1171" y="357" class="body"><tspan x="1171" dy="0">Three message-passing layers</tspan><tspan x="1171" dy="24">Predict acceleration from graph state</tspan></text>
+    <text x="1171" y="429" class="metric">137,731 parameters</text>
+    <text x="1711" y="327" class="card-title">04  Baseline Evaluation</text>
+    <text x="1711" y="357" class="body"><tspan x="1711" dy="0">GNN versus flattened MLP</tspan><tspan x="1711" dy="24">One-step accuracy + autoregressive rollout</tspan></text>
+    <text x="1711" y="405" class="metric">MSE 4.45e-6 | 37% better than MLP</text>
+    <text x="1711" y="432" class="metric">193% vs 5,395% energy drift</text>
+  </g>
+  <path d="M586 377 H602 M1126 377 H1142 M1666 377 H1682" stroke="#a9c4db" stroke-width="3" marker-end="url(#arrow)"/>
+
+  <!-- Lane 2 -->
+  <rect x="40" y="480" width="2320" height="190" rx="18" fill="#351d29" stroke="#c9545e" stroke-width="2"/>
+  <rect x="40" y="480" width="2320" height="42" rx="18" fill="#8d303e"/>
+  <text x="66" y="508" class="sans lane-label">CRITICAL CORRECTION | MEASUREMENT VALIDITY</text>
+  <g filter="url(#shadow)">
+    <rect x="66" y="545" width="2268" height="104" rx="14" fill="#4b2530" stroke="#ff7f82" stroke-width="2"/>
+  </g>
+  <g class="sans">
+    <circle cx="105" cy="592" r="23" fill="#ff7f82"/><text x="96" y="601" fill="#39151c" font-size="27" font-weight="800">!</text>
+    <text x="145" y="578" class="card-title">G-Constant Bug: Discovery and Fix</text>
+    <text x="145" y="608" class="body"><tspan x="145" dy="0">Problem: energy computations used G = 1. Correct value in AU/Msun/yr units: G = 4 pi^2.</tspan><tspan x="145" dy="22">Fix: read G from each trajectory and propagate it through rollout, energy, stability, and training evaluation.</tspan></text>
+    <text x="1770" y="580" class="metric">Measurement validity restored</text>
+    <text x="1770" y="608" class="tiny">Do not mix pre-fix and post-fix numbers.</text>
+  </g>
+
+  <!-- Lane 3 -->
+  <rect x="40" y="690" width="2320" height="270" rx="18" fill="#162c2b" stroke="#3e9d82" stroke-width="2"/>
+  <rect x="40" y="690" width="2320" height="42" rx="18" fill="#21654f"/>
+  <text x="66" y="718" class="sans lane-label">STABILITY, CONSERVATION, INTERPRETABILITY | PHASES 8-10</text>
+  <g filter="url(#shadow)">
+    <rect x="66" y="755" width="520" height="180" rx="14" fill="#183f3b" stroke="#58c79d" stroke-width="2"/>
+    <rect x="606" y="755" width="520" height="180" rx="14" fill="#183f3b" stroke="#58c79d" stroke-width="2"/>
+    <rect x="1146" y="755" width="520" height="180" rx="14" fill="#44331c" stroke="#e3ae55" stroke-width="2"/>
+    <rect x="1686" y="755" width="648" height="180" rx="14" fill="#44331c" stroke="#e3ae55" stroke-width="2"/>
+  </g>
+  <g class="sans">
+    <text x="91" y="790" class="card-title">05  Residual GNN</text>
+    <text x="91" y="820" class="body"><tspan x="91" dy="0">Learns a correction to Newtonian gravity</tspan><tspan x="91" dy="24">a_pred = a_newton + epsilon * GNN(state)</tspan></text>
+    <text x="91" y="902" class="metric">Val MSE 3.81e-6 | ~390 steps</text>
+    <text x="631" y="790" class="card-title">06  Rollout-Trained GNN</text>
+    <text x="631" y="820" class="body"><tspan x="631" dy="0">Autoregressive unrolling with real BPTT</tspan><tspan x="631" dy="24">8-step train windows | 16-step validation</tspan></text>
+    <text x="631" y="902" class="metric">~460 stable steps | 22.7% drift</text>
+    <text x="1171" y="790" class="card-title">07  Hamiltonian NN</text>
+    <text x="1171" y="820" class="body"><tspan x="1171" dy="0">Learns H(q,p) and derives dynamics</tspan><tspan x="1171" dy="24">dq/dt = dH/dp | dp/dt = -dH/dq</tspan></text>
+    <text x="1171" y="902" class="metric">MSE 2.18e-6 | &lt;10% drift</text>
+    <text x="1711" y="790" class="card-title">08  Attention GNN</text>
+    <text x="1711" y="820" class="body"><tspan x="1711" dy="0">Learns interaction weights on graph edges</tspan><tspan x="1711" dy="24">High star-planet | low planet-planet attention</tspan></text>
+    <text x="1711" y="902" class="metric">1.90e-7 MSE | 23x better than standard GNN</text>
+  </g>
+  <path d="M586 845 H602 M1126 845 H1142 M1666 845 H1682" stroke="#a9c4db" stroke-width="3" marker-end="url(#arrow)"/>
+
+  <!-- Lane 4 -->
+  <rect x="40" y="980" width="2320" height="240" rx="18" fill="#302344" stroke="#996ec7" stroke-width="2"/>
+  <rect x="40" y="980" width="2320" height="42" rx="18" fill="#5b3d83"/>
+  <text x="66" y="1008" class="sans lane-label">REAL SYSTEMS AND GENERALIZATION | PHASES 11-12</text>
+  <g filter="url(#shadow)">
+    <rect x="66" y="1045" width="700" height="150" rx="14" fill="#3b2b56" stroke="#bd91ed" stroke-width="2"/>
+    <rect x="796" y="1045" width="700" height="150" rx="14" fill="#3b2b56" stroke="#bd91ed" stroke-width="2"/>
+    <rect x="1526" y="1045" width="808" height="150" rx="14" fill="#3b2b56" stroke="#bd91ed" stroke-width="2"/>
+  </g>
+  <g class="sans">
+    <text x="91" y="1080" class="card-title">09  Real Exoplanet Systems</text>
+    <text x="91" y="1110" class="body"><tspan x="91" dy="0">NASA Archive + JPL Horizons</tspan><tspan x="91" dy="24">TRAPPIST-1 | Kepler-11 | HD 10180 | HR 8799</tspan></text>
+    <text x="91" y="1170" class="metric">Synthetic benchmark to realistic systems</text>
+    <text x="821" y="1080" class="card-title">10  Out-of-Distribution Tests</text>
+    <text x="821" y="1110" class="body"><tspan x="821" dy="0">4-body | 0.3 Msun M-dwarf | high eccentricity</tspan><tspan x="821" dy="24">Reuse the training normalizer during testing</tspan></text>
+    <text x="821" y="1170" class="metric">30,274x to 66,450,474x baseline MSE</text>
+    <text x="1551" y="1080" class="card-title">11  Honest Assessment</text>
+    <text x="1551" y="1110" class="body"><tspan x="1551" dy="0">Strong in-distribution learning; poor transfer</tspan><tspan x="1551" dy="24">Single-system training causes overfitting</tspan></text>
+    <text x="1551" y="1170" class="metric">Next step: train on diverse systems</text>
+  </g>
+  <path d="M766 1120 H792 M1496 1120 H1522" stroke="#a9c4db" stroke-width="3" marker-end="url(#arrow)"/>
+
+  <!-- Lane 5 -->
+  <rect x="40" y="1240" width="2320" height="190" rx="18" fill="#252d36" stroke="#788998" stroke-width="2"/>
+  <rect x="40" y="1240" width="2320" height="42" rx="18" fill="#4a5965"/>
+  <text x="66" y="1268" class="sans lane-label">REPRODUCIBILITY AND VISUAL EVIDENCE</text>
+  <g filter="url(#shadow)">
+    <rect x="66" y="1305" width="1100" height="100" rx="14" fill="#303a44" stroke="#9cabb6" stroke-width="2"/>
+    <rect x="1196" y="1305" width="1138" height="100" rx="14" fill="#303a44" stroke="#9cabb6" stroke-width="2"/>
+  </g>
+  <g class="sans">
+    <text x="91" y="1340" class="card-title">12  Evaluation Suite</text>
+    <text x="91" y="1370" class="body">Parity plots | energy and stability curves | 3D trajectories | rollout animations</text>
+    <text x="1221" y="1340" class="card-title">13  Reproducible Infrastructure</text>
+    <text x="1221" y="1370" class="body">PyTorch + PyG + REBOUND + astropy | checkpoints | normalizers | pytest | automated scripts</text>
+  </g>
+
+  <!-- Cross-lane influence -->
+  <path d="M930 480 C930 465 920 465 920 450" fill="none" stroke="#ff7f82" stroke-width="3" stroke-dasharray="10 8" marker-end="url(#redArrow)"/>
+  <path d="M1150 649 C1150 675 1040 675 1040 690" fill="none" stroke="#ff7f82" stroke-width="3" stroke-dasharray="10 8" marker-end="url(#redArrow)"/>
+  <path d="M1450 649 C1450 675 1400 675 1400 690" fill="none" stroke="#ff7f82" stroke-width="3" stroke-dasharray="10 8" marker-end="url(#redArrow)"/>
+  <text x="960" y="475" class="sans tiny" fill="#ff9a9d">correct G everywhere</text>
+  <path d="M2060 1195 C2060 1220 2050 1220 2050 1240" fill="none" stroke="#bd91ed" stroke-width="3" stroke-dasharray="10 8" marker-end="url(#arrow)"/>
+
+  <!-- Bottom summary -->
+  <rect x="40" y="1460" width="2320" height="160" rx="18" fill="#080f18" stroke="#40576a" stroke-width="2"/>
+  <text x="70" y="1495" class="sans lane-label">BOTTOM LINE</text>
+  <g class="sans">
+    <text x="70" y="1540" class="metric">6 models trained</text>
+    <text x="390" y="1540" class="metric">Best accuracy: Attention GNN, 1.90e-7 MSE</text>
+    <text x="1010" y="1540" class="metric">Best conservation: HNN, &lt;10% measured drift</text>
+    <text x="1630" y="1540" class="metric">Best horizon: Rollout GNN, ~460 steps</text>
+    <text x="70" y="1580" class="body">Generalization currently fails out of distribution</text>
+    <text x="710" y="1580" class="body">Critical lesson: use trajectory-specific G = 4 pi^2</text>
+    <text x="1450" y="1580" class="body">All final evaluations must be real rollouts, not hardcoded claims</text>
+  </g>
+
+  <!-- Legend -->
+  <g transform="translate(40 1635)" class="sans tiny">
+    <circle cx="7" cy="0" r="6" fill="#4b9ddd"/><text x="20" y="5">Foundation</text>
+    <circle cx="145" cy="0" r="6" fill="#ff7f82"/><text x="158" y="5">Correction</text>
+    <circle cx="275" cy="0" r="6" fill="#58c79d"/><text x="288" y="5">Stability</text>
+    <circle cx="395" cy="0" r="6" fill="#e3ae55"/><text x="408" y="5">Physics</text>
+    <circle cx="510" cy="0" r="6" fill="#bd91ed"/><text x="523" y="5">Real systems</text>
+    <circle cx="670" cy="0" r="6" fill="#9cabb6"/><text x="683" y="5">Infrastructure</text>
+    <line x1="850" y1="0" x2="900" y2="0" stroke="#a9c4db" stroke-width="3" marker-end="url(#arrow)"/><text x="915" y="5">sequential</text>
+    <line x1="1030" y1="0" x2="1080" y2="0" stroke="#ff7f82" stroke-width="3" stroke-dasharray="8 6" marker-end="url(#redArrow)"/><text x="1095" y="5">cross-cutting</text>
+  </g>
+</svg>
