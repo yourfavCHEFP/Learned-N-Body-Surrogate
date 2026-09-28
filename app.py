@@ -104,6 +104,47 @@ def make_trajectory_plot(positions: np.ndarray, names: list[str]) -> go.Figure:
     return figure
 
 
+def make_xy_comparison_plot(
+    predicted_positions: np.ndarray,
+    reference_positions: np.ndarray | None,
+    names: list[str],
+) -> go.Figure:
+    figure = go.Figure()
+    colors = ["#f3b63f", "#45a1d8", "#f06d5f", "#8c7ae6", "#55b88a"]
+
+    for body_index, name in enumerate(names):
+        color = colors[body_index % len(colors)]
+        figure.add_trace(
+            go.Scatter(
+                x=predicted_positions[:, body_index, 0],
+                y=predicted_positions[:, body_index, 1],
+                mode="lines",
+                name=f"{name} prediction",
+                line={"color": color, "width": 3},
+            )
+        )
+        if reference_positions is not None:
+            figure.add_trace(
+                go.Scatter(
+                    x=reference_positions[:, body_index, 0],
+                    y=reference_positions[:, body_index, 1],
+                    mode="lines",
+                    name=f"{name} REBOUND",
+                    line={"color": color, "width": 1, "dash": "dot"},
+                    opacity=0.7,
+                )
+            )
+
+    figure.update_layout(
+        height=520,
+        margin={"l": 10, "r": 10, "t": 10, "b": 10},
+        xaxis={"title": "x (AU)", "scaleanchor": "y", "scaleratio": 1},
+        yaxis={"title": "y (AU)"},
+        legend={"orientation": "h", "y": 1.08},
+    )
+    return figure
+
+
 def main() -> None:
     st.set_page_config(page_title="N-Body Surrogate", page_icon="✦", layout="wide")
     st.title("Learned N-Body Surrogate")
@@ -128,6 +169,7 @@ def main() -> None:
     )
     trajectory = load_dataset(str(selected_path))
     max_steps = min(500, len(trajectory["times"]) - 1)
+    reference_dt = float(np.median(np.diff(trajectory["times"])))
 
     if len(trajectory["masses"]) != 3:
         st.sidebar.warning(
@@ -142,7 +184,7 @@ def main() -> None:
         "Timestep (years)",
         min_value=0.0001,
         max_value=1.0,
-        value=0.01,
+        value=reference_dt,
         step=0.001,
         format="%.4f",
     )
@@ -194,6 +236,25 @@ def main() -> None:
     metric_columns[2].metric(
         "Simulated time", f"{(positions.shape[0] - 1) * dt:.2f} yr"
     )
+    reference_positions = None
+    if st.session_state.dataset == selected_path.name:
+        if np.isclose(float(dt), reference_dt):
+            reference_positions = trajectory["positions"][: len(positions)]
+        else:
+            st.warning(
+                f"Reference overlay hidden because the selected timestep ({dt:.4f} yr) "
+                f"differs from the dataset timestep ({reference_dt:.4f} yr)."
+            )
+
+    st.subheader("Orbital trajectory comparison")
+    st.caption(
+        "Solid lines are the GNN rollout. Dotted lines are REBOUND reference data."
+    )
+    st.plotly_chart(
+        make_xy_comparison_plot(positions, reference_positions, names),
+        width="stretch",
+    )
+    st.subheader("3D predicted trajectory")
     st.plotly_chart(make_trajectory_plot(positions, names), width="stretch")
 
 
