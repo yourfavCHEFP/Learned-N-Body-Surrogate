@@ -192,7 +192,7 @@ def main() -> None:
         "Run surrogate rollout", type="primary", use_container_width=True
     )
 
-    if "rollout" not in st.session_state or run_rollout:
+    if run_rollout:
         normalizer_path = CHECKPOINT_DIR / "normalizer.npz"
         using_fallback = not normalizer_path.exists()
         normalizer = (
@@ -201,22 +201,27 @@ def main() -> None:
             else Normalizer.load(normalizer_path)
         )
         model = load_model(str(CHECKPOINT), len(trajectory["masses"]))
-        predicted_positions, predicted_velocities = rollout_trajectory(
-            trajectory["positions"][0],
-            trajectory["velocities"][0],
-            trajectory["masses"],
-            model,
-            steps,
-            float(dt),
-            torch.device("cpu"),
-            normalizer,
-            trajectory["G"],
-            is_gnn=True,
-        )
+        with st.spinner("Running the surrogate rollout..."):
+            predicted_positions, predicted_velocities = rollout_trajectory(
+                trajectory["positions"][0],
+                trajectory["velocities"][0],
+                trajectory["masses"],
+                model,
+                steps,
+                float(dt),
+                torch.device("cpu"),
+                normalizer,
+                trajectory["G"],
+                is_gnn=True,
+            )
         st.session_state.rollout = predicted_positions
         st.session_state.velocities = predicted_velocities
         st.session_state.dataset = selected_path.name
         st.session_state.fallback = using_fallback
+
+    if "rollout" not in st.session_state:
+        st.info("Choose a system and rollout length, then press Run surrogate rollout.")
+        st.stop()
 
     positions = st.session_state.rollout
     if st.session_state.dataset != selected_path.name:
